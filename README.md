@@ -31,6 +31,8 @@ Desarrollo de una criptomoneda con Python con fines didácticos, asociado al TFM
 - Se añade un mecanismo de Proof of Work al proceso de minado.
 - Se añade el uso de la función resumen SHA256 para el cálculo del hash del bloque.
 
+### v 0.6
+- Se añade persistencia mediante el almacenamiento local en disco de la blockchain.
 
 ## Autores
 

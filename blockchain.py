@@ -1,6 +1,8 @@
 from functools import reduce
 import hashlib as hl
 from collections import OrderedDict
+import json
+import pickle
 
 # Importa dos funciones desde el archivo hash_util.py. Se omite la extensión ".py" en la importación
 from hash_util import hash_string_256, hash_block
@@ -25,6 +27,48 @@ owner = 'Manuel'
 participants = {'Manuel'}
 
 
+
+def load_data():
+    """Inicializar blockchain + abrir datos de transacciones desde un archivo."""
+    global blockchain
+    global open_transactions
+    with open('blockchain.txt', mode='r') as f:
+        file_content = f.readlines()
+        blockchain = json.loads(file_content[0][:-1])
+        # Necesitamos convertir los datos cargados porque las transacciones de los bloques deben utilizar OrderedDict
+        updated_blockchain = []
+        for block in blockchain:
+            updated_block = {
+                'previous_hash': block['previous_hash'],
+                'index': block['index'],
+                'proof': block['proof'],
+                'transactions': [OrderedDict(
+                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
+            }
+            updated_blockchain.append(updated_block)
+        blockchain = updated_blockchain
+        open_transactions = json.loads(file_content[1])
+        # Necesitamos convertir los datos cargados porque las transacciones pendientes deben utilizar OrderedDict
+        updated_transactions = []
+        for tx in open_transactions:
+            updated_transaction = OrderedDict(
+                [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+            updated_transactions.append(updated_transaction)
+        open_transactions = updated_transactions
+
+
+load_data()
+
+
+def save_data():
+    """Guardar blockchain + instantánea de transacciones abiertas en un archivo."""
+    with open('blockchain.txt', mode='w') as f:
+        f.write(json.dumps(blockchain))
+        f.write('\n')
+        f.write(json.dumps(open_transactions))
+
+
+
 def valid_proof(transactions, last_hash, proof):
     """Valida un número de prueba de trabajo (nonce) y comprueba si resuelve el requisito del PoW (dos 0 a la izquierda)
 
@@ -35,9 +79,10 @@ def valid_proof(transactions, last_hash, proof):
     """
     # Crear una cadena con todas las entradas hash
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
+    print(guess)
     # Calcula el Hash de la cadena
     # IMPORTANTE: Este NO es el mismo hash que se almacenará en el previous_hash. No es el hash de un bloque. 
-    # Sólo se utiliza para el algoritmo proof-of-work.
+    # Sólo se utiliza para el algoritmo proof-of-work.    
     guess_hash = hash_string_256(guess)
     print(guess_hash)
     # Sólo se considera válido un hash (basado en las entradas anteriores) que empiece por dos 0.
@@ -50,7 +95,7 @@ def proof_of_work():
     """
     Generar una prueba de trabajo (nonce) para las transacciones abiertas, 
     el hash del bloque anterior y un número aleatorio (que se adivina hasta que se ajuste al requisito del protocolo PoW).
-    """
+    """    
     last_block = blockchain[-1]
     last_hash = hash_block(last_block)
     proof = 0
@@ -119,6 +164,7 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         open_transactions.append(transaction)
         participants.add(sender)
         participants.add(recipient)
+        save_data()
         return True
     return False
 
@@ -216,6 +262,7 @@ while waiting_for_input:
     elif user_choice == '2':
         if mine_block():
             open_transactions = []
+            save_data()
     elif user_choice == '3':
         print_blockchain_elements()
     elif user_choice == '4':
@@ -245,7 +292,7 @@ while waiting_for_input:
         break
     print('Saldo de {}: {:6.2f}'.format('Manuel', get_balance('Manuel')))
 else:
-    print('El usuario abandona la sesión.')
+    print('El usuario abandona la sesión')
 
 
 print('Fin!')
