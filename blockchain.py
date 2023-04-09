@@ -1,4 +1,9 @@
-import functools
+from functools import reduce
+import hashlib as hl
+from collections import OrderedDict
+
+# Importa dos funciones desde el archivo hash_util.py. Se omite la extensión ".py" en la importación
+from hash_util import hash_string_256, hash_block
 
 # La recompensa que damos a los mineros (por crear un nuevo bloque)
 MINING_REWARD = 10
@@ -7,7 +12,8 @@ MINING_REWARD = 10
 genesis_block = {
     'previous_hash': '',
     'index': 0,
-    'transactions': []
+    'transactions': [],
+    'proof': 100
 }
 # Inicializar nuestra lista (vacía) de blockchain
 blockchain = [genesis_block]
@@ -19,14 +25,39 @@ owner = 'Manuel'
 participants = {'Manuel'}
 
 
+def valid_proof(transactions, last_hash, proof):
+    """Valida un número de prueba de trabajo (nonce) y comprueba si resuelve el requisito del PoW (dos 0 a la izquierda)
 
-def hash_block(block):
-    """Realiza el hash de un bloque y devuelve una cadena que lo representa.
-    
     Argumentos:
-        :block: El bloque al que debe aplicarse el hash.
+        :transactions: Las transacciones del bloque para el que se crea el nonce.
+        :last_hash: El hash del bloque anterior que se almacenará en el bloque actual.
+        :proof: El número de PoW (nonce) que estamos probando.
     """
-    return '-'.join([str(block[key]) for key in block])
+    # Crear una cadena con todas las entradas hash
+    guess = (str(transactions) + str(last_hash) + str(proof)).encode()
+    # Calcula el Hash de la cadena
+    # IMPORTANTE: Este NO es el mismo hash que se almacenará en el previous_hash. No es el hash de un bloque. 
+    # Sólo se utiliza para el algoritmo proof-of-work.
+    guess_hash = hash_string_256(guess)
+    print(guess_hash)
+    # Sólo se considera válido un hash (basado en las entradas anteriores) que empiece por dos 0.
+    # Esta condición es modificable. También podría requerir 10 ceros a la izquierda, lo que llevaría mucho más tiempo
+    # (nos permite controlar la velocidad a la que se pueden añadir nuevos bloques).
+    return guess_hash[0:2] == '00'
+
+
+def proof_of_work():
+    """
+    Generar una prueba de trabajo (nonce) para las transacciones abiertas, 
+    el hash del bloque anterior y un número aleatorio (que se adivina hasta que se ajuste al requisito del protocolo PoW).
+    """
+    last_block = blockchain[-1]
+    last_hash = hash_block(last_block)
+    proof = 0
+    # Prueba con diferentes números PoW (nonces) y devuelve el primero que sea válido
+    while not valid_proof(open_transactions, last_hash, proof):
+        proof += 1
+    return proof
 
 
 def get_balance(participant):
@@ -37,17 +68,22 @@ def get_balance(participant):
     """
     # Obtiene una lista de todos los importes de monedas enviados por la persona dada (se devuelven listas vacías si la persona NO era el remitente)
     # Esto recupera las cantidades enviadas de transacciones que ya estaban incluidas en bloques de la blockchain
-    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]
+    tx_sender = [[tx['amount'] for tx in block['transactions']
+                  if tx['sender'] == participant] for block in blockchain]
     # Obtiene una lista de todos los importes de monedas enviados por la persona dada (se devuelven listas vacías si la persona NO era el remitente)
     # Esto recupera los importes enviados de las transacciones abiertas (para evitar el doble gasto)
-    open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]
+    open_tx_sender = [tx['amount']
+                      for tx in open_transactions if tx['sender'] == participant]
     tx_sender.append(open_tx_sender)
     print(tx_sender)
-    amount_sent = functools.reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
+    amount_sent = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
+                         if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
     # Esto recupera las cantidades de monedas recibidas de transacciones que ya estaban incluidas en bloques de la blockchain
     # Ignoramos aquí las transacciones abiertas porque no deberías poder gastar monedas antes de que la transacción haya sido confirmada + incluida en un bloque
-    tx_recipient = [[tx['amount'] for tx in block['transactions'] if tx['recipient'] == participant] for block in blockchain]
-    amount_received = functools.reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_recipient, 0)
+    tx_recipient = [[tx['amount'] for tx in block['transactions']
+                     if tx['recipient'] == participant] for block in blockchain]
+    amount_received = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
+                             if len(tx_amt) > 0 else tx_sum + 0, tx_recipient, 0)
     # Devuelve el saldo total
     return amount_received - amount_sent
 
@@ -77,11 +113,8 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         :recipient: El destinatario de las monedas. 
         :amount: La cantidad de monedas enviadas con la transacción (por defecto = 1.0)
     """
-    transaction = {
-        'sender': sender,
-        'recipient': recipient,
-        'amount': amount
-    }
+    transaction = OrderedDict(
+        [('sender', sender), ('recipient', recipient), ('amount', amount)])
     if verify_transaction(transaction):
         open_transactions.append(transaction)
         participants.add(sender)
@@ -96,12 +129,10 @@ def mine_block():
     last_block = blockchain[-1]
     # Hash del último bloque (=> para poder compararlo con el valor hash almacenado)
     hashed_block = hash_block(last_block)
+    proof = proof_of_work()
     # Los mineros deben ser recompensados, así que vamos a crear una transacción de recompensa
-    reward_transaction = {
-        'sender': 'RECOMPENSA_MINADO',
-        'recipient': owner,
-        'amount': MINING_REWARD
-    }
+    reward_transaction = OrderedDict(
+        [('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     # Copiar transacción en lugar de manipular la lista original open_transactions
     # Esto asegura que si por alguna razón la minería fallara,
     # no tenemos la transacción de recompensa almacenada en las transacciones abiertas
@@ -110,7 +141,8 @@ def mine_block():
     block = {
         'previous_hash': hashed_block,
         'index': len(blockchain),
-        'transactions': copied_transactions
+        'transactions': copied_transactions,
+        'proof': proof
     }
     blockchain.append(block)
     return True
@@ -146,6 +178,9 @@ def verify_chain():
         if index == 0:
             continue
         if block['previous_hash'] != hash_block(blockchain[index - 1]):
+            return False
+        if not valid_proof(block['transactions'][:-1], block['previous_hash'], block['proof']):
+            print('PoW no válido')
             return False
     return True
 
