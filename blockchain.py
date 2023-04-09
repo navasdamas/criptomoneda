@@ -4,21 +4,22 @@ import hashlib as hl
 import json
 import pickle
 
-# Importa dos funciones desde el archivo hash_util.py. Se omite la extensión ".py" en la importación
-from hash_util import hash_block
+from utility.hash_util import hash_block
+from utility.verification import Verification
 from block import Block
 from transaction import Transaction
-from verification import Verification
+from wallet import Wallet
 
 # La recompensa que damos a los mineros (por crear un nuevo bloque)
 MINING_REWARD = 10
 
+print(__name__)
 
 class Blockchain:
     """La clase Blockchain gestiona la cadena de bloques, así como las transacciones abiertas y el nodo en el que se está ejecutando.
     
     Atributos:
-        :cadena: La lista de bloques
+        :chain: La lista de bloques
         :open_transactions (privado): La lista de transacciones abiertas
         :hosting_node: El nodo conectado (que ejecuta la blockchain).
     """
@@ -58,7 +59,7 @@ class Blockchain:
                 updated_blockchain = []
                 for block in blockchain:
                     converted_tx = [Transaction(
-                        tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]
+                        tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                     updated_blockchain.append(updated_block)
@@ -68,7 +69,7 @@ class Blockchain:
                 updated_transactions = []
                 for tx in open_transactions:
                     updated_transaction = Transaction(
-                        tx['sender'], tx['recipient'], tx['amount'])
+                        tx['sender'], tx['recipient'], tx['signature'], tx['amount'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
         except (IOError, IndexError):
@@ -93,7 +94,7 @@ class Blockchain:
         """
         Generar una prueba de trabajo (nonce) para las transacciones abiertas, 
         el hash del bloque anterior y un número aleatorio (que se adivina hasta que se ajuste al requisito del protocolo PoW).
-        """         
+        """        
         last_block = self.__chain[-1]
         last_hash = hash_block(last_block)
         proof = 0
@@ -132,7 +133,8 @@ class Blockchain:
             return None
         return self.__chain[-1]
 
-    def add_transaction(self, recipient, sender, amount=1.0):
+
+    def add_transaction(self, recipient, sender, signature, amount=1.0):
         """ Añade una nueva transacción, verificando previamente si es posible realizarla.
 
         Argumentos:
@@ -140,7 +142,9 @@ class Blockchain:
             :recipient: El destinatario de las monedas. 
             :amount: La cantidad de monedas enviadas con la transacción (por defecto = 1.0)
         """
-        transaction = Transaction(sender, recipient, amount)
+        if self.hosting_node == None:
+            return False
+        transaction = Transaction(sender, recipient, signature, amount)
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -150,16 +154,21 @@ class Blockchain:
     def mine_block(self):
         """Crear un nuevo bloque y añadirle transacciones abiertas."""
         # Obtener el último bloque actual de la blockchain
+        if self.hosting_node == None:
+            return False
         last_block = self.__chain[-1]
         # Hash del último bloque (=> para poder compararlo con el valor hash almacenado)
         hashed_block = hash_block(last_block)
         proof = self.proof_of_work()
         # Los mineros deben ser recompensados, así que vamos a crear una transacción de recompensa
-        reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)
+        reward_transaction = Transaction('MINING', self.hosting_node, '', MINING_REWARD)
         # Copiar transacción en lugar de manipular la lista original open_transactions
         # Esto asegura que si por alguna razón la minería fallara,
         # no tenemos la transacción de recompensa almacenada en las transacciones abiertas
         copied_transactions = self.__open_transactions[:]
+        for tx in copied_transactions:
+            if not Wallet.verify_transaction(tx):
+                return False
         copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block,
                       copied_transactions, proof)

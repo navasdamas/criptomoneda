@@ -1,9 +1,9 @@
 from time import time
 
-from printable import Printable
+from utility.printable import Printable
 
 class Block(Printable):
-    """Un único bloque de nuestra blockchain.
+   """Un único bloque de nuestra blockchain.
     
     Atributos:
         :index: El índice de este bloque.

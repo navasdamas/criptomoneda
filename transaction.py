@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from printable import Printable
+from utility.printable import Printable
 
 class Transaction(Printable):
     """Transacción que puede añadirse a un bloque de la blockchain.
@@ -10,10 +10,11 @@ class Transaction(Printable):
         :recipient: El receptor de las monedas.
         :amount: La cantidad de monedas enviadas.
     """
-    def __init__(self, sender, recipient, amount):
+    def __init__(self, sender, recipient, signature, amount):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
+        self.signature = signature
 
     def to_ordered_dict(self):
         """Convierte esta operación en un OrderedDict (hasheable)."""
