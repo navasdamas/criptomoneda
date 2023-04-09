@@ -37,6 +37,11 @@ Desarrollo de una criptomoneda con Python con fines didácticos, asociado al TFM
 ### v 0.6.2
 - Se añade manejo de errores para garantizar el acceso a los archivos guardados que contienen datos de la blockchain. 
 
+### v 0.7
+- Mejora de la estructura de la aplicación mediante programación orientada a objetos. Se añaden clases independientes para representar la blockchain, los bloques y las transacciones. 
+- Mejora de la limpieza del código en general gracias a la programación orientada a objetos.
+
+
 ## Autores
 
 - [@navasdamas](https://github.com/navasdamas)
