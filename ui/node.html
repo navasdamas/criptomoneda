@@ -60,6 +60,19 @@
                     <h1>Gestión de Blockchain</h1>
                 </div>
             </div>
+            <div class="row">
+                <div class="col">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/">Monedero</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/network">Red</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
             <div v-if="error" class="alert alert-danger" role="alert">
                 {{ error }}
             </div>
@@ -131,8 +144,9 @@
             </div>
             <div class="row my-3">
                 <div class="col">
-                    <button class="btn btn-primary" @click="onLoadData">{{ view === 'chain' ? 'Cargar Blockchain' : 'Cargar transacciones' }}</button>
-                    <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Minar monedas</button>
+                    <button class="btn btn-primary" @click="onLoadData">{{ view === 'chain' ? 'Cargar Blockchain' : 'Cargar Transacciones' }}</button>
+                    <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Minar Monedas</button>
+                    <button class="btn btn-warning" @click="onResolve">Resolver conflictos</button>
                 </div>
             </div>
             <div class="row">
@@ -148,7 +162,7 @@
                             <div v-if="view === 'chain'" class="card-header">
                                 <h5 class="mb-0">
                                     <button class="btn btn-link" type="button" @click="showElement === index ? showElement = null : showElement = index">
-                                        Block #{{ data.index }}
+                                        Bloque #{{ data.index }}
                                     </button>
                                 </h5>
                             </div>
@@ -223,7 +237,7 @@
             },
             methods: {
                 onCreateWallet: function () {
-                    // Enviar solicitud Http para crear un nuevo monedero (y devolver las claves)
+                    // Enviar solicitud Http para crear un nuevo monedero (y devolver claves)
                     var vm = this;
                     this.walletLoading = true
                     axios.post('/wallet')
@@ -301,9 +315,21 @@
                             vm.error = error.response.data.message;
                         });
                 },
+                onResolve: function() {
+                    var vm = this
+                    axios.post('/resolve-conflicts')
+                        .then(function(response) {
+                            vm.error = null;
+                            vm.success = response.data.message;
+                        })
+                        .catch(function (error) {
+                            vm.success = null;
+                            vm.error = error.response.data.message;
+                        });
+                },
                 onLoadData: function () {
                     if (this.view === 'chain') {
-                        // Cargar datos de blockchain
+                        // Cargar datos de la blockchain
                         var vm = this
                         this.dataLoading = true
                         axios.get('/chain')
@@ -313,10 +339,10 @@
                             })
                             .catch(function (error) {
                                 vm.dataLoading = false
-                                vm.error = 'Algo salió mal.'
+                                vm.error = 'Something went wrong.'
                             });
                     } else {
-                        // Cargar datos de las transacciones pendientes
+                        // Cargar datos de transacciones
                         var vm = this
                         axios.get('/transactions')
                             .then(function (response) {
@@ -325,7 +351,7 @@
                             })
                             .catch(function (error) {
                                 vm.dataLoading = false
-                                vm.error = 'Algo salió mal.'
+                                vm.error = 'Something went wrong.'
                             });
                     }
                 }

@@ -58,6 +58,9 @@ Desarrollo de una criptomoneda con Python con fines didácticos, asociado al TFM
 		- GET "/balance": obtiene el saldo disponible por el propiertario del monedero
 - Implementación de una interfaz de usuario web para interactuar de forma más amigable con la blockchain.
 
+### v 1.0
+- Implementación de una red de nodos que trabajan e interactúan entre sí de forma descentralizada. Permite compartir datos entre los nodos y comunicarse para detectar y resolver conflictos entre ellos si se obtienen diferentes versiones de la blockchain en distintos nodos.
+
 ## Autores
 
 - [@navasdamas](https://github.com/navasdamas)
