@@ -34,6 +34,9 @@ Desarrollo de una criptomoneda con Python con fines didácticos, asociado al TFM
 ### v 0.6
 - Se añade persistencia mediante el almacenamiento local en disco de la blockchain.
 
+### v 0.6.2
+- Se añade manejo de errores para garantizar el acceso a los archivos guardados que contienen datos de la blockchain. 
+
 ## Autores
 
 - [@navasdamas](https://github.com/navasdamas)

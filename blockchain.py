@@ -10,15 +10,8 @@ from hash_util import hash_string_256, hash_block
 # La recompensa que damos a los mineros (por crear un nuevo bloque)
 MINING_REWARD = 10
 
-# Nuestro bloque inicial para la blockchain
-genesis_block = {
-    'previous_hash': '',
-    'index': 0,
-    'transactions': [],
-    'proof': 100
-}
 # Inicializar nuestra lista (vacía) de blockchain
-blockchain = [genesis_block]
+blockchain = []
 # Transacciones pendientes
 open_transactions = []
 # Somos los propietarios de este nodo de la blockchain, por lo que este es nuestro identificador (por ejemplo, para enviar monedas)
@@ -27,34 +20,48 @@ owner = 'Manuel'
 participants = {'Manuel'}
 
 
-
 def load_data():
     """Inicializar blockchain + abrir datos de transacciones desde un archivo."""
     global blockchain
     global open_transactions
-    with open('blockchain.txt', mode='r') as f:
-        file_content = f.readlines()
-        blockchain = json.loads(file_content[0][:-1])
-        # Necesitamos convertir los datos cargados porque las transacciones de los bloques deben utilizar OrderedDict
-        updated_blockchain = []
-        for block in blockchain:
-            updated_block = {
-                'previous_hash': block['previous_hash'],
-                'index': block['index'],
-                'proof': block['proof'],
-                'transactions': [OrderedDict(
-                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
-            }
-            updated_blockchain.append(updated_block)
-        blockchain = updated_blockchain
-        open_transactions = json.loads(file_content[1])
-        # Necesitamos convertir los datos cargados porque las transacciones pendientes deben utilizar OrderedDict
-        updated_transactions = []
-        for tx in open_transactions:
-            updated_transaction = OrderedDict(
-                [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
-            updated_transactions.append(updated_transaction)
-        open_transactions = updated_transactions
+    try:
+        with open('blockchain.txt', mode='r') as f:
+            file_content = f.readlines()
+            blockchain = json.loads(file_content[0][:-1])
+            # Necesitamos convertir los datos cargados porque las transacciones de los bloques deben utilizar OrderedDict
+            updated_blockchain = []
+            for block in blockchain:
+                updated_block = {
+                    'previous_hash': block['previous_hash'],
+                    'index': block['index'],
+                    'proof': block['proof'],
+                    'transactions': [OrderedDict(
+                        [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
+                }
+                updated_blockchain.append(updated_block)
+            blockchain = updated_blockchain
+            open_transactions = json.loads(file_content[1])
+            # Necesitamos convertir los datos cargados porque las transacciones pendientes deben utilizar OrderedDict
+            updated_transactions = []
+            for tx in open_transactions:
+                updated_transaction = OrderedDict(
+                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+                updated_transactions.append(updated_transaction)
+            open_transactions = updated_transactions
+    except IOError:
+        # Nuestro bloque inicial para la blockchain
+        genesis_block = {
+            'previous_hash': '',
+            'index': 0,
+            'transactions': [],
+            'proof': 100
+        }
+        # Inicializar nuestra lista (vacía) de blockchain
+        blockchain = [genesis_block]
+        # Transacciones pendientes
+        open_transactions = []
+    finally:
+        print('Datos cargados!')
 
 
 load_data()
@@ -62,11 +69,13 @@ load_data()
 
 def save_data():
     """Guardar blockchain + instantánea de transacciones abiertas en un archivo."""
-    with open('blockchain.txt', mode='w') as f:
-        f.write(json.dumps(blockchain))
-        f.write('\n')
-        f.write(json.dumps(open_transactions))
-
+    try:
+        with open('blockchain.txt', mode='w') as f:
+            f.write(json.dumps(blockchain))
+            f.write('\n')
+            f.write(json.dumps(open_transactions))
+    except IOError:
+        print('Fallo al guardar!')
 
 
 def valid_proof(transactions, last_hash, proof):
@@ -79,15 +88,13 @@ def valid_proof(transactions, last_hash, proof):
     """
     # Crear una cadena con todas las entradas hash
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
-    print(guess)
     # Calcula el Hash de la cadena
     # IMPORTANTE: Este NO es el mismo hash que se almacenará en el previous_hash. No es el hash de un bloque. 
-    # Sólo se utiliza para el algoritmo proof-of-work.    
+    # Sólo se utiliza para el algoritmo proof-of-work.       
     guess_hash = hash_string_256(guess)
-    print(guess_hash)
     # Sólo se considera válido un hash (basado en las entradas anteriores) que empiece por dos 0.
     # Esta condición es modificable. También podría requerir 10 ceros a la izquierda, lo que llevaría mucho más tiempo
-    # (nos permite controlar la velocidad a la que se pueden añadir nuevos bloques).
+    # (nos permite controlar la velocidad a la que se pueden añadir nuevos bloques).    
     return guess_hash[0:2] == '00'
 
 
@@ -95,7 +102,7 @@ def proof_of_work():
     """
     Generar una prueba de trabajo (nonce) para las transacciones abiertas, 
     el hash del bloque anterior y un número aleatorio (que se adivina hasta que se ajuste al requisito del protocolo PoW).
-    """    
+    """     
     last_block = blockchain[-1]
     last_hash = hash_block(last_block)
     proof = 0
@@ -181,7 +188,7 @@ def mine_block():
         [('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     # Copiar transacción en lugar de manipular la lista original open_transactions
     # Esto asegura que si por alguna razón la minería fallara,
-    # no tenemos la transacción de recompensa almacenada en las transacciones abiertas
+    # no tenemos la transacción de recompensa almacenada en las transacciones abiertas    
     copied_transactions = open_transactions[:]
     copied_transactions.append(reward_transaction)
     block = {
@@ -278,7 +285,7 @@ while waiting_for_input:
             blockchain[0] = {
                 'previous_hash': '',
                 'index': 0,
-                'transactions': [{'sender': 'Alice', 'recipient': 'Bob', 'amount': 100.0}]
+                'transactions': [{'sender': 'Chris', 'recipient': 'Max', 'amount': 100.0}]
             }
     elif user_choice == 'q':
         # Esto hará que el bucle termine porque su condición de ejecución se convierte en False
