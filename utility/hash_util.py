@@ -4,19 +4,19 @@ import json
 # __all__ = ['hash_string_256', 'hash_block']
 
 def hash_string_256(string):
-    """Crear un hash SHA256 para una cadena de entrada dada.
+    """Create a SHA256 hash for a given input string.
 
-    Argumentos:
-        :string: La cadena a la que se aplicará el hash.
+    Arguments:
+        :string: The string which should be hashed.
     """
     return hl.sha256(string).hexdigest()
 
 
 def hash_block(block):
-    """Realiza el hash de un bloque y devuelve una cadena que lo representa.
+    """Hashes a block and returns a string representation of it.
 
-    Argumentos:
-        :block: El bloque que se empleará como entrada para la función hash.
+    Arguments:
+        :block: The block that should be hashed.
     """
     hashable_block = block.__dict__.copy()
     hashable_block['transactions'] = [tx.to_ordered_dict() for tx in hashable_block['transactions']]

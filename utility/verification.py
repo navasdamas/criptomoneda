@@ -1,49 +1,47 @@
-"""Proporciona métodos de ayuda a la verificación."""
+"""Provides verification helper methods."""
 
 from utility.hash_util import hash_string_256, hash_block
 from wallet import Wallet
 
 class Verification:
-    """Una clase auxiliar que ofrece varios métodos de verificación y validación estáticos y basados en clases."""
+    """A helper class which offer various static and class-based verification and validation methods."""
     @staticmethod
     def valid_proof(transactions, last_hash, proof):
-        """Valida un número de prueba de trabajo (nonce) y comprueba si resuelve el requisito del PoW (dos 0 a la izquierda)
+        """Validate a proof of work number and see if it solves the puzzle algorithm (two leading 0s)
 
-        Argumentos:
-            :transactions: Las transacciones del bloque para el que se crea el nonce.
-            :last_hash: El hash del bloque anterior que se almacenará en el bloque actual.
-            :proof: El número de PoW (nonce) que estamos probando.
+        Arguments:
+            :transactions: The transactions of the block for which the proof is created.
+            :last_hash: The previous block's hash which will be stored in the current block.
+            :proof: The proof number we're testing.
         """
-        # Crear una cadena con todas las entradas hash
+        # Create a string with all the hash inputs
         guess = (str([tx.to_ordered_dict() for tx in transactions]) + str(last_hash) + str(proof)).encode()
-        # Calcula el Hash de la cadena
-        # IMPORTANTE: Este NO es el mismo hash que se almacenará en el previous_hash. No es el hash de un bloque. 
-        # Sólo se utiliza para el algoritmo proof-of-work. 
+        # Hash the string
+        # IMPORTANT: This is NOT the same hash as will be stored in the previous_hash. It's a not a block's hash. It's only used for the proof-of-work algorithm.
         guess_hash = hash_string_256(guess)
-        # Sólo se considera válido un hash (basado en las entradas anteriores) que empiece por dos 0.
-        # Esta condición es modificable. También podría requerir 10 ceros a la izquierda, lo que llevaría mucho más tiempo
-        # (nos permite controlar la velocidad a la que se pueden añadir nuevos bloques). 
+        # Only a hash (which is based on the above inputs) which starts with two 0s is treated as valid
+        # This condition is of course defined by you. You could also require 10 leading 0s - this would take significantly longer (and this allows you to control the speed at which new blocks can be added)
         return guess_hash[0:2] == '00'
         
     @classmethod
     def verify_chain(cls, blockchain):
-        """ Verifica la blockchain actual y devuelve True si es válida, False en caso contrario.."""
+        """ Verify the current blockchain and return True if it's valid, False otherwise."""
         for (index, block) in enumerate(blockchain):
             if index == 0:
                 continue
             if block.previous_hash != hash_block(blockchain[index - 1]):
                 return False
             if not cls.valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
-                print('PoW no válido')
+                print('Proof of work is invalid')
                 return False
         return True
 
     @staticmethod
     def verify_transaction(transaction, get_balance, check_funds=True):
-        """Verifica una transacción comprobando si el remitente tiene monedas suficientes.
+        """Verify a transaction by checking whether the sender has sufficient coins.
 
-        Argumentos:
-            :transaction: La transacción que debe ser verificada.
+        Arguments:
+            :transaction: The transaction that should be verified.
         """
         if check_funds:
             sender_balance = get_balance()
@@ -53,5 +51,5 @@ class Verification:
 
     @classmethod
     def verify_transactions(cls, open_transactions, get_balance):
-        """Verifica todas las transacciones abiertas."""
+        """Verifies all open transactions."""
         return all([cls.verify_transaction(tx, get_balance, False) for tx in open_transactions])

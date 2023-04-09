@@ -26,8 +26,10 @@ class Wallet:
                     f.write(self.public_key)
                     f.write('\n')
                     f.write(self.private_key)
+                return True
             except (IOError, IndexError):
                 print('Error al guardar las claves del monedero...')
+                return False
 
     def load_keys(self):
         """Carga en memoria las claves del archivo wallet.txt."""
@@ -38,8 +40,10 @@ class Wallet:
                 private_key = keys[1]
                 self.public_key = public_key
                 self.private_key = private_key
+            return True
         except (IOError, IndexError):
             print('Error al cargar el monedero...')
+            return False
 
     def generate_keys(self):
         """Generar un nuevo par de claves privada y pública."""

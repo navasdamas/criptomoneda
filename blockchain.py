@@ -94,7 +94,7 @@ class Blockchain:
         """
         Generar una prueba de trabajo (nonce) para las transacciones abiertas, 
         el hash del bloque anterior y un número aleatorio (que se adivina hasta que se ajuste al requisito del protocolo PoW).
-        """        
+        """         
         last_block = self.__chain[-1]
         last_hash = hash_block(last_block)
         proof = 0
@@ -105,6 +105,8 @@ class Blockchain:
 
     def get_balance(self):
         """Calcular y devolver el saldo de un participante."""
+        if self.hosting_node == None:
+            return None
         participant = self.hosting_node
         # Obtiene una lista de todos los importes de monedas enviados por la persona dada (se devuelven listas vacías si la persona NO era el remitente)
         # Esto recupera las cantidades enviadas de transacciones que ya estaban incluidas en bloques de la blockchain
@@ -155,7 +157,7 @@ class Blockchain:
         """Crear un nuevo bloque y añadirle transacciones abiertas."""
         # Obtener el último bloque actual de la blockchain
         if self.hosting_node == None:
-            return False
+            return None
         last_block = self.__chain[-1]
         # Hash del último bloque (=> para poder compararlo con el valor hash almacenado)
         hashed_block = hash_block(last_block)
@@ -168,11 +170,11 @@ class Blockchain:
         copied_transactions = self.__open_transactions[:]
         for tx in copied_transactions:
             if not Wallet.verify_transaction(tx):
-                return False
+                return None
         copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block,
                       copied_transactions, proof)
         self.__chain.append(block)
         self.__open_transactions = []
         self.save_data()
-        return True
+        return block
