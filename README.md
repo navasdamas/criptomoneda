@@ -23,6 +23,10 @@ Desarrollo de una criptomoneda con Python con fines didácticos, asociado al TFM
 - Mejora del proceso del cálculo del hash, obteniéndose ahora una representación en forma de cadena de caracteres de un bloque.
 - Mejora del proceso de análisis y verificación de la cadena, añadiendo el cálculo de saldos que se incluye como medida de verificación, comparando la cantidad de monedas a transferir con el saldo del remitente, para determinar si una transacción puede o no llevarse a cabo.
 
+### v 0.4
+- Mejora y simplificación del cálculo del saldo.
+- Mejora de la salida de la interfaz de usuario por consola.
+
 
 ## Autores
 

@@ -1,5 +1,6 @@
+import functools
 
-# La recompensa que se le ofrece a los mineros (por crear un nuevo bloque)
+# La recompensa que damos a los mineros (por crear un nuevo bloque)
 MINING_REWARD = 10
 
 # Nuestro bloque inicial para la blockchain
@@ -12,8 +13,7 @@ genesis_block = {
 blockchain = [genesis_block]
 # Transacciones pendientes
 open_transactions = []
-# Somos los propietarios de este nodo de la blockchain,
-# por lo que este es nuestro identificador (por ejemplo, para enviar monedas)
+# Somos los propietarios de este nodo de la blockchain, por lo que este es nuestro identificador (por ejemplo, para enviar monedas)
 owner = 'Manuel'
 # Participantes inscritos: Nosotros mismos + otras personas que envían/reciben monedas
 participants = {'Manuel'}
@@ -33,32 +33,21 @@ def get_balance(participant):
     """Calcular y devolver el saldo de un participante.
 
     Argumentos:
-        :participant: La persona para la que calcular el saldo.
+        :participant: El usuario para el que calcular el saldo.
     """
-    # Obtiene una lista de todos los importes de monedas enviados por la persona dada
-    # (se devuelven listas vacías si la persona NO era el remitente)
-    # Esto recupera las cantidades enviadas de transacciones que ya
-    # estaban incluidas en bloques de la blockchain
+    # Obtiene una lista de todos los importes de monedas enviados por la persona dada (se devuelven listas vacías si la persona NO era el remitente)
+    # Esto recupera las cantidades enviadas de transacciones que ya estaban incluidas en bloques de la blockchain
     tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]
-    # Obtiene una lista de todos los importes de monedas enviados por la persona dada 
-    # (se devuelven listas vacías si la persona NO era el remitente)
+    # Obtiene una lista de todos los importes de monedas enviados por la persona dada (se devuelven listas vacías si la persona NO era el remitente)
     # Esto recupera los importes enviados de las transacciones abiertas (para evitar el doble gasto)
     open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]
     tx_sender.append(open_tx_sender)
-    amount_sent = 0
-    # Calcular la cantidad total de monedas enviadas
-    for tx in tx_sender:
-        if len(tx) > 0:
-            amount_sent += tx[0]
-    # Esto recupera las cantidades de monedas recibidas de transacciones 
-    # que ya estaban incluidas en bloques de la blockchain
-    # Ignoramos aquí las transacciones abiertas porque no deberías poder gastar
-    # monedas antes de que la transacción haya sido confirmada + incluida en un bloque
+    print(tx_sender)
+    amount_sent = functools.reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
+    # Esto recupera las cantidades de monedas recibidas de transacciones que ya estaban incluidas en bloques de la blockchain
+    # Ignoramos aquí las transacciones abiertas porque no deberías poder gastar monedas antes de que la transacción haya sido confirmada + incluida en un bloque
     tx_recipient = [[tx['amount'] for tx in block['transactions'] if tx['recipient'] == participant] for block in blockchain]
-    amount_received = 0
-    for tx in tx_recipient:
-        if len(tx) > 0:
-            amount_received += tx[0]
+    amount_received = functools.reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_recipient, 0)
     # Devuelve el saldo total
     return amount_received - amount_sent
 
@@ -80,10 +69,9 @@ def verify_transaction(transaction):
     return sender_balance >= transaction['amount']
 
 
-
 def add_transaction(recipient, sender=owner, amount=1.0):
     """ Añade una nueva transacción, verificando previamente si es posible realizarla.
-    
+
     Argumentos:
         :sender: El remitente de las monedas. (por defecto el propietario del nodo)
         :recipient: El destinatario de las monedas. 
@@ -220,7 +208,7 @@ while waiting_for_input:
         print('Blockchain no válida!')
         # Salir del bucle
         break
-    print(get_balance('Manuel'))
+    print('Saldo de {}: {:6.2f}'.format('Manuel', get_balance('Manuel')))
 else:
     print('El usuario abandona la sesión.')
 
